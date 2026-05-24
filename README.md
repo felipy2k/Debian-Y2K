@@ -57,25 +57,25 @@ The NVIDIA driver uses DKMS to build a kernel module at install time. With Secur
 
 ## 🚀 Quick Start
 
-> 💡 **Fresh Debian install?** `git` is not included by default. Use one of the methods below.
+> 💡 **Fresh Debian install?** `curl` and `git` are not included by default — `apt-get` always is. Use it to bootstrap.
 
 ---
 
-**Option A — via `curl` (no git required, recommended for fresh installs)**
+**Option A — recommended for fresh installs (installs `curl` first)**
 
 ```bash
+sudo apt-get install -y curl
 curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh -o debian-y2k-setup.sh
 bash debian-y2k-setup.sh
 ```
 
-**Option B — via `wget` (if curl is also missing)**
+Or as a single one-liner:
 
 ```bash
-wget -O debian-y2k-setup.sh https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh
-bash debian-y2k-setup.sh
+sudo apt-get install -y curl && curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh | bash
 ```
 
-**Option C — via `git` (install it first if needed)**
+**Option B — via `git`**
 
 ```bash
 sudo apt-get install -y git
