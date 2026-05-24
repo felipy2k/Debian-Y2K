@@ -46,6 +46,31 @@ if [[ "$EUID" -eq 0 ]]; then
   exit 1
 fi
 
+# ── Verifica acesso sudo ANTES de qualquer coisa ──
+# No Debian, diferente do Ubuntu, o usuário NÃO é adicionado ao sudo
+# automaticamente na instalação. Sem isso, todos os comandos vão falhar.
+if ! sudo -n true 2>/dev/null; then
+  if ! sudo true 2>/dev/null; then
+    echo ""
+    fail "Usuário \'$USER\' não tem acesso ao sudo."
+    echo ""
+    echo -e "${YELLOW}  No Debian, o sudo não é configurado automaticamente.${NC}"
+    echo -e "${YELLOW}  Corrija isso ANTES de rodar o script:${NC}"
+    echo ""
+    echo -e "${CYAN}  1. Abra um novo terminal e entre como root:${NC}"
+    echo -e "     ${BOLD}su -${NC}"
+    echo ""
+    echo -e "${CYAN}  2. Adicione seu usuário ao sudo e instale o curl:${NC}"
+    echo -e "     ${BOLD}apt-get install -y sudo curl${NC}"
+    echo -e "     ${BOLD}usermod -aG sudo ${USER}${NC}"
+    echo -e "     ${BOLD}exit${NC}"
+    echo ""
+    echo -e "${CYAN}  3. Faça logout e login novamente, depois rode o script outra vez.${NC}"
+    echo ""
+    exit 1
+  fi
+fi
+
 if ! grep -qi 'debian' /etc/os-release 2>/dev/null; then
   fail "Este script foi feito para Debian. Sistema detectado não é Debian."
   exit 1
