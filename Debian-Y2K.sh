@@ -307,17 +307,38 @@ install_freeoffice() {
     return
   fi
 
-  SOFTMAKER_KEYRING="/usr/share/keyrings/softmaker.gpg"
-  step "Adicionando repositório SoftMaker"
+  # Método primário: installer oficial SoftMaker via pipe (exatamente como docs oficiais)
+  # https://www.freeoffice.com/en/support/installation/linux
+  # Configura o repositório APT + instala + habilita atualizações automáticas
+  step "Instalando via installer oficial SoftMaker"
+  INSTALLER_URL="https://softmaker.net/down/install-softmaker-freeoffice-2024.sh"
+  if curl -fsSL --connect-timeout 15 "$INSTALLER_URL" | sudo bash; then
+    ok "FreeOffice 2024 instalado via installer oficial."
+    return
+  fi
+  warning "Installer oficial falhou — tentando metodo APT manual."
+
+
+
+  # ── Fallback: GPG key + repo manual ──
+  # Nota: keyring vai para /etc/apt/keyrings/ (correto no Debian 12+)
+  step "Fallback: configurando repositório SoftMaker manualmente"
+  SOFTMAKER_KEYRING="/etc/apt/keyrings/softmaker.gpg"
+  sudo mkdir -p /etc/apt/keyrings
 
   if [[ ! -f "$SOFTMAKER_KEYRING" ]]; then
-    curl -fsSL https://shop.softmaker.com/repo/linux-repo-public.key \
-      | gpg --dearmor \
-      | sudo tee "$SOFTMAKER_KEYRING" > /dev/null
-    ok "Chave GPG SoftMaker adicionada."
+    if curl -fsSL --connect-timeout 15 https://shop.softmaker.com/repo/linux-repo-public.key \
+        | gpg --dearmor \
+        | sudo tee "$SOFTMAKER_KEYRING" > /dev/null; then
+      ok "Chave GPG SoftMaker adicionada em $SOFTMAKER_KEYRING"
+    else
+      warning "Download da chave GPG SoftMaker falhou (404)."
+      warning "Instale o FreeOffice manualmente: https://www.freeoffice.com/en/download"
+      return
+    fi
   fi
 
-  echo "deb [signed-by=${SOFTMAKER_KEYRING}] https://shop.softmaker.com/repo/apt stable non-free" \
+  echo "deb [arch=amd64 signed-by=${SOFTMAKER_KEYRING}] https://shop.softmaker.com/repo/apt stable non-free" \
     | sudo tee /etc/apt/sources.list.d/softmaker.list > /dev/null
 
   try sudo apt-get update -qq
@@ -327,7 +348,8 @@ install_freeoffice() {
   elif sudo apt-get install -y softmaker-freeoffice 2>/dev/null; then
     ok "FreeOffice instalado."
   else
-    warning "FreeOffice não disponível via APT. Baixe manualmente em https://www.freeoffice.com"
+    warning "FreeOffice não disponível via APT."
+    warning "Baixe manualmente: https://www.freeoffice.com/en/download"
   fi
 }
 
