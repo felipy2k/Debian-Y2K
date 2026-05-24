@@ -57,14 +57,32 @@ The NVIDIA driver uses DKMS to build a kernel module at install time. With Secur
 
 ## 🚀 Quick Start
 
-> 💡 **Fresh Debian install?** `curl` and `git` are not included by default — `apt-get` always is. Use it to bootstrap.
+### Step 0 — Configure `sudo` (fresh Debian install only)
+
+> ⚠️ **This step is mandatory on a fresh Debian install.**  
+> Unlike Ubuntu, Debian does **not** add your user to `sudo` automatically. Without this, every `sudo` command in the script will fail with `is not in the sudoers file`.
+
+Open a terminal and run:
+
+```bash
+su -
+```
+
+Enter your **root password** (set during Debian installation), then run:
+
+```bash
+apt-get install -y sudo curl
+usermod -aG sudo YOUR_USERNAME
+exit
+```
+
+> 🔄 **Log out and log back in** for the group change to take effect before continuing.
 
 ---
 
-**Option A — recommended for fresh installs (installs `curl` first)**
+### Step 1 — Download and run the script
 
 ```bash
-sudo apt-get install -y curl
 curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh -o debian-y2k-setup.sh
 bash debian-y2k-setup.sh
 ```
@@ -72,10 +90,10 @@ bash debian-y2k-setup.sh
 Or as a single one-liner:
 
 ```bash
-sudo apt-get install -y curl && curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh | bash
 ```
 
-**Option B — via `git`**
+Prefer `git`? Install it first:
 
 ```bash
 sudo apt-get install -y git
@@ -249,6 +267,16 @@ repos → update → APT packages → FreeOffice → Flatpaks → NVIDIA → Ext
 | 🌐 | Internet connection |
 | 🔑 | User account with `sudo` access |
 | 💾 | ~15 GB free disk space (Steam + Blender + CUDA) |
+
+> ⚠️ **`sudo` not configured?** Unlike Ubuntu, Debian does not add the first user to `sudo` automatically during installation. If you get `felipe is not in the sudoers file`, fix it first:
+>
+> ```bash
+> su -                                   # log in as root (password set during install)
+> apt-get install -y sudo curl
+> usermod -aG sudo YOUR_USERNAME
+> exit                                   # back to your user
+> ```
+> Then **log out and log back in** for the group change to take effect. After that, `sudo` and `curl` will work normally.
 
 ---
 
