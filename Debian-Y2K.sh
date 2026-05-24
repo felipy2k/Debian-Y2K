@@ -83,6 +83,7 @@ show_menu() {
   echo "  [7] Instalar extensões GNOME"
   echo "  [8] Aplicar configurações visuais"
   echo "  [9] Verificar instalação"
+  echo "  [f] Instalar FreeOffice"
   echo "  [0] Sair"
   echo "  [r] Reiniciar"
   echo
@@ -212,9 +213,11 @@ install_packages() {
     drawing
     timeshift
 
-    # Comunicação (preferência .deb)
-    telegram-desktop     # Telegram (apt do Debian 13)
+    # Comunicação
     torbrowser-launcher  # Tor Browser
+
+    # Player de mídia (APT .deb — não instalar Flatpak para evitar duplicata)
+    vlc
 
     # Codecs e drivers de mídia
     ffmpeg
@@ -311,50 +314,86 @@ install_freeoffice() {
     return
   fi
 
-  # Método primário: installer oficial SoftMaker via pipe (exatamente como docs oficiais)
-  # https://www.freeoffice.com/en/support/installation/linux
-  # Configura o repositório APT + instala + habilita atualizações automáticas
-  step "Instalando via installer oficial SoftMaker"
-  INSTALLER_URL="https://softmaker.net/down/install-softmaker-freeoffice-2024.sh"
-  if curl -fsSL --connect-timeout 15 "$INSTALLER_URL" | sudo bash; then
+  # ── Método 1: installer oficial (recomendado pelo SoftMaker) ──
+  # Nota: deve rodar como root completo via "sudo bash -c '...'" para
+  # que o curl interno do installer também rode como root.
+  # DEBIAN_FRONTEND evita travamento em prompts interativos.
+  step "Método 1: installer oficial SoftMaker"
+  if sudo bash -c 'DEBIAN_FRONTEND=noninteractive curl -fsSL --connect-timeout 20 https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | bash'; then
     ok "FreeOffice 2024 instalado via installer oficial."
     return
   fi
-  warning "Installer oficial falhou — tentando metodo APT manual."
+  warning "Installer oficial falhou — tentando download direto do .deb."
 
+  # ── Método 2: download direto do .deb ──
+  # O SoftMaker publica .deb com padrão: softmaker-freeoffice-2024_YYMM-01_amd64.deb
+  # Tenta os últimos 6 meses em ordem decrescente.
+  step "Método 2: download direto do .deb"
+  DEB_BASE="https://www.softmaker.net/down"
+  DEB_FILE=""
+  # Gera lista de versões: YYMM do mês atual para 6 meses atrás
+  VERSIONS=()
+  for i in 0 1 2 3 4 5; do
+    VERSIONS+=("$(date -d "$i months ago" +%y%m 2>/dev/null || true)")
+  done
 
+  for ver in "${VERSIONS[@]}"; do
+    [[ -z "$ver" ]] && continue
+    url="${DEB_BASE}/softmaker-freeoffice-2024_${ver}-01_amd64.deb"
+    code=$(curl -fsSL --connect-timeout 10 -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "0")
+    if [[ "$code" == "200" ]]; then
+      DEB_FILE="/tmp/softmaker-freeoffice-2024_${ver}.deb"
+      step "Baixando: $url"
+      curl -fsSL --connect-timeout 20 "$url" -o "$DEB_FILE" && break
+      DEB_FILE=""
+    fi
+  done
 
-  # ── Fallback: GPG key + repo manual ──
-  # Nota: keyring vai para /etc/apt/keyrings/ (correto no Debian 12+)
-  step "Fallback: configurando repositório SoftMaker manualmente"
+  if [[ -n "$DEB_FILE" && -f "$DEB_FILE" ]]; then
+    step "Instalando .deb"
+    if sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$DEB_FILE"; then
+      rm -f "$DEB_FILE"
+      ok "FreeOffice instalado via .deb direto."
+      return
+    fi
+    # apt-get com path de .deb pode falhar em versões antigas — tenta dpkg + fix
+    if sudo dpkg -i "$DEB_FILE" 2>/dev/null; then
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -f -y 2>/dev/null || true
+      rm -f "$DEB_FILE"
+      ok "FreeOffice instalado via dpkg."
+      return
+    fi
+    rm -f "$DEB_FILE"
+  fi
+  warning "Download direto do .deb falhou."
+
+  # ── Método 3: repositório APT manual ──
+  step "Método 3: repositório APT manual"
   SOFTMAKER_KEYRING="/etc/apt/keyrings/softmaker.gpg"
   sudo mkdir -p /etc/apt/keyrings
 
   if [[ ! -f "$SOFTMAKER_KEYRING" ]]; then
-    if curl -fsSL --connect-timeout 15 https://shop.softmaker.com/repo/linux-repo-public.key \
-        | gpg --dearmor \
-        | sudo tee "$SOFTMAKER_KEYRING" > /dev/null; then
-      ok "Chave GPG SoftMaker adicionada em $SOFTMAKER_KEYRING"
-    else
-      warning "Download da chave GPG SoftMaker falhou (404)."
-      warning "Instale o FreeOffice manualmente: https://www.freeoffice.com/en/download"
+    curl -fsSL --connect-timeout 15 https://shop.softmaker.com/repo/linux-repo-public.key \
+      | gpg --dearmor \
+      | sudo tee "$SOFTMAKER_KEYRING" > /dev/null 2>&1 || true
+  fi
+
+  if [[ -f "$SOFTMAKER_KEYRING" ]]; then
+    echo "deb [arch=amd64 signed-by=${SOFTMAKER_KEYRING}] https://shop.softmaker.com/repo/apt stable non-free" \
+      | sudo tee /etc/apt/sources.list.d/softmaker.list > /dev/null
+    try sudo apt-get update -qq
+    if sudo DEBIAN_FRONTEND=noninteractive apt-get install -y softmaker-freeoffice-2024 2>/dev/null; then
+      ok "FreeOffice instalado via repositório APT."
       return
     fi
   fi
 
-  echo "deb [arch=amd64 signed-by=${SOFTMAKER_KEYRING}] https://shop.softmaker.com/repo/apt stable non-free" \
-    | sudo tee /etc/apt/sources.list.d/softmaker.list > /dev/null
-
-  try sudo apt-get update -qq
-
-  if sudo apt-get install -y softmaker-freeoffice-2024 2>/dev/null; then
-    ok "FreeOffice 2024 instalado."
-  elif sudo apt-get install -y softmaker-freeoffice 2>/dev/null; then
-    ok "FreeOffice instalado."
-  else
-    warning "FreeOffice não disponível via APT."
-    warning "Baixe manualmente: https://www.freeoffice.com/en/download"
-  fi
+  fail "Todos os métodos falharam."
+  echo "  Instale manualmente:"
+  echo "  1. Acesse https://www.freeoffice.com/en/download"
+  echo "  2. Baixe o pacote .deb para Linux amd64"
+  echo "  3. sudo apt install ./softmaker-freeoffice-*.deb"
+  ((WARN_COUNT++)) || true
 }
 
 # ─────────────────────────────────────────────
@@ -366,9 +405,6 @@ install_flatpaks() {
   flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 
   FLATPAKS=(
-    # ── Player de mídia (substitui Showtime/Totem) ──
-    org.videolan.VLC
-
     # ── GNOME / Sistema ──
     com.mattjakeman.ExtensionManager  # Gerenciador de extensões GNOME
     com.github.tchx84.Flatseal        # Gerenciador de permissões Flatpak
@@ -382,11 +418,10 @@ install_flatpaks() {
     com.discordapp.Discord            # Discord (apenas Flatpak oficial)
 
     # ── Multimídia / Vídeo ──
-    org.shotcut.Shotcut               # Fallback se shotcut APT não disponível
     de.haeckerfelix.Shortwave         # Rádio pela internet
 
     # ── Gráficos / Design / 3D ──
-    org.freecadweb.FreeCAD            # CAD 3D (Flatpak = versão atual)
+    org.freecad.FreeCAD            # CAD 3D (Flatpak = versão atual)
     io.github.nokse22.exhibit         # Visualizador de modelos 3D
     io.gitlab.adhami3310.Switcheroo   # Conversor de imagens (formato)
 
@@ -633,16 +668,21 @@ remove_bloat() {
   step "Removendo LibreOffice (substituído pelo FreeOffice)"
   try sudo apt-get remove -y --purge 'libreoffice*'
 
-  # BUG FIX: GNOME 48 usa org.gnome.Showtime como player padrão, não org.gnome.Totem
-  # O script anterior só removia Totem e deixava Showtime instalado
-  step "Removendo players de mídia GNOME padrão (substituídos pelo VLC)"
-  for app in org.gnome.Showtime org.gnome.Totem org.gnome.Music; do
+  # Remove Showtime (player padrão GNOME 48) e qualquer instância VLC Flatpak duplicada
+  # VLC fica apenas como .deb para evitar duplicata no app grid
+  step "Removendo players GNOME padrão e VLC Flatpak duplicado"
+  for app in org.gnome.Showtime org.gnome.Totem org.gnome.Music org.videolan.VLC; do
     if flatpak info "$app" &>/dev/null 2>&1; then
       step "Removendo Flatpak: $app"
       try flatpak uninstall -y "$app"
     fi
   done
   for pkg in gnome-music rhythmbox totem totem-video-thumbnailer; do
+    dpkg -s "$pkg" &>/dev/null 2>&1 && try sudo apt-get remove -y --purge "$pkg" || true
+  done
+
+  step "Removendo Evolution (cliente de e-mail padrão GNOME — não utilizado)"
+  for pkg in evolution evolution-common evolution-data-server; do
     dpkg -s "$pkg" &>/dev/null 2>&1 && try sudo apt-get remove -y --purge "$pkg" || true
   done
 
@@ -855,7 +895,7 @@ verify_final() {
     ["lm-sensors"]="LM Sensors"
     ["pipx"]="pipx"
     ["python3-requests"]="python3-requests (GSConnect)"
-    ["telegram-desktop"]="Telegram Desktop"
+    ["vlc"]="VLC media player (APT)"
     ["torbrowser-launcher"]="Tor Browser"
     ["converseen"]="Converseen"
     ["shotcut"]="Shotcut"
@@ -872,14 +912,12 @@ verify_final() {
   echo
   echo -e "${BOLD}── Flatpaks instalados ──${NC}"
   for app in \
-    org.videolan.VLC \
     com.mattjakeman.ExtensionManager \
     io.github.solaar_mouse.solaar \
     com.discordapp.Discord \
-    org.telegram.desktop \
     com.github.tchx84.Flatseal \
     net.nokyan.Resources \
-    org.freecadweb.FreeCAD \
+    org.freecad.FreeCAD \
     com.jeffser.Alpaca; do
     if flatpak info "$app" &>/dev/null 2>&1; then
       ok "$app"
@@ -979,6 +1017,7 @@ while true; do
     8) apply_settings ;;
     9) verify_final ;;
     0) echo "Saindo."; exit 0 ;;
+    f|F) install_freeoffice ;;
     r|R) echo "Reiniciando..."; sudo reboot ;;
     *) warning "Opção inválida." ;;
   esac
