@@ -660,17 +660,24 @@ remove_bloat() {
   step "Removendo LibreOffice (substituído pelo FreeOffice)"
   try sudo apt-get remove -y --purge 'libreoffice*' > /dev/null 2>&1 || true
 
-  # Remove Showtime (player padrão GNOME 48) e qualquer instância VLC Flatpak duplicada
-  # VLC fica apenas como .deb para evitar duplicata no app grid
-  step "Removendo players GNOME padrão e VLC Flatpak duplicado"
+  # Remove Showtime (player padrão GNOME 48) — pode ser APT *ou* Flatpak
+  # No Debian 13 fresh install, Showtime está como pacote APT (gnome-showtime)
+  step "Removendo Showtime e players GNOME padrão"
+
+  # Remove pacotes APT primeiro
+  for pkg in gnome-showtime totem totem-video-thumbnailer gnome-music rhythmbox; do
+    if dpkg -s "$pkg" &>/dev/null 2>&1; then
+      step "Removendo APT: $pkg"
+      try sudo apt-get remove -y --purge "$pkg"
+    fi
+  done
+
+  # Remove Flatpaks (caso instalados via Flatpak)
   for app in org.gnome.Showtime org.gnome.Totem org.gnome.Music org.videolan.VLC; do
     if flatpak info "$app" &>/dev/null 2>&1; then
       step "Removendo Flatpak: $app"
       try flatpak uninstall -y "$app"
     fi
-  done
-  for pkg in gnome-music rhythmbox totem totem-video-thumbnailer; do
-    dpkg -s "$pkg" &>/dev/null 2>&1 && try sudo apt-get remove -y --purge "$pkg" || true
   done
 
   step "Removendo Evolution (cliente de e-mail padrão GNOME — não utilizado)"
@@ -786,6 +793,13 @@ apply_settings() {
       sed -i "/^\[Default Applications\]/a ${mime}=${VLC_DESKTOP}" "$MIMEAPPS"
     done
     ok "VLC ($VLC_DESKTOP) definido como padrão (xdg-mime + gio mime + mimeapps.list)."
+
+  # Força via gsettings (GNOME Default Apps panel lê daqui)
+  step "Forçando VLC via gsettings (painel Default Apps)"
+  try gsettings set org.gnome.desktop.default-applications.mediaplayer exec "vlc"
+  # Reseta qualquer override do Showtime no portal de mídia
+  try xdg-mime default "$VLC_DESKTOP" x-scheme-handler/rtsp
+  try xdg-mime default "$VLC_DESKTOP" x-scheme-handler/mms
   fi
 
   # ── Chrome: Wayland + gestos de touchpad ──
@@ -860,11 +874,20 @@ verify_final() {
   # BUG FIX: verifica Showtime (GNOME 48) além de Totem
   echo
   echo -e "${BOLD}── Flatpaks que deveriam ter sido REMOVIDOS ──${NC}"
+  # Verifica APT
+  for pkg in gnome-showtime totem; do
+    if dpkg -s "$pkg" &>/dev/null 2>&1; then
+      warning "$pkg (APT) ainda instalado — execute opção [3]."
+    else
+      ok "$pkg (APT) removido."
+    fi
+  done
+  # Verifica Flatpak
   for app in org.gnome.Showtime org.gnome.Totem org.gnome.Music; do
     if flatpak info "$app" &>/dev/null 2>&1; then
-      warning "$app ainda instalado — execute opção [3]."
+      warning "$app (Flatpak) ainda instalado — execute opção [3]."
     else
-      ok "$app removido."
+      ok "$app (Flatpak) removido."
     fi
   done
 
