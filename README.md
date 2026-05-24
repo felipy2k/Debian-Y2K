@@ -5,6 +5,23 @@
 
 ---
 
+## ⚠️ Before you start — Disable Secure Boot
+
+**Secure Boot must be disabled in your BIOS/UEFI before running this script.**
+
+The NVIDIA driver uses DKMS to build a kernel module at install time. With Secure Boot enabled, the unsigned module will be blocked from loading — the system may boot without GPU acceleration or fail entirely.
+
+> 💡 **How to disable Secure Boot:**
+> 1. Restart your computer and enter BIOS/UEFI (usually `F2`, `F10`, `F12` or `Del` during boot)
+> 2. Navigate to the **Security** or **Boot** tab
+> 3. Find **Secure Boot** and set it to **Disabled**
+> 4. Save and exit (`F10`)
+> 5. Boot into Debian and run the script
+
+> 🔵 **Don't have an NVIDIA GPU?** You can skip this step — Secure Boot won't affect the rest of the installation.
+
+---
+
 ## 💾 Disk Space Requirements
 
 > Sizes measured via `apt-cache` (Debian 13 / Ubuntu 24.04 equivalent packages) + Flathub published sizes.  
@@ -35,23 +52,6 @@
 | + CUDA Toolkit | ~10.5 GB | **15 GB** |
 
 > ⚠️ The script checks for **15 GB free** before running option `[1] Run EVERYTHING` — this safely covers the full scenario including CUDA. If you are skipping CUDA, 10 GB is sufficient.
-
----
-
-## ⚠️ Before you start — Disable Secure Boot
-
-**Secure Boot must be disabled in your BIOS/UEFI before running this script.**
-
-The NVIDIA driver uses DKMS to build a kernel module at install time. With Secure Boot enabled, the unsigned module will be blocked from loading — the system may boot without GPU acceleration or fail entirely.
-
-> 💡 **How to disable Secure Boot:**
-> 1. Restart your computer and enter BIOS/UEFI (usually `F2`, `F10`, `F12` or `Del` during boot)
-> 2. Navigate to the **Security** or **Boot** tab
-> 3. Find **Secure Boot** and set it to **Disabled**
-> 4. Save and exit (`F10`)
-> 5. Boot into Debian and run the script
-
-> 🔵 **Don't have an NVIDIA GPU?** You can skip this step — Secure Boot won't affect the rest of the installation.
 
 ---
 
