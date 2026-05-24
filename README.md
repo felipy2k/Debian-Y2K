@@ -83,23 +83,23 @@ exit
 ### Step 1 — Download and run the script
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh -o debian-y2k-setup.sh
-bash debian-y2k-setup.sh
+curl -fsSL https://raw.githubusercontent.com/felipy2k/Debian-Y2K/main/Debian-Y2K.sh -o Debian-Y2K.sh
+bash Debian-Y2K.sh
 ```
 
 Or as a single one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/felipy2k/debian-Y2K/main/debian-y2k-setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/felipy2k/Debian-Y2K/main/Debian-Y2K.sh | bash
 ```
 
 Prefer `git`? Install it first:
 
 ```bash
 sudo apt-get install -y git
-git clone https://github.com/felipy2k/debian-Y2K.git
+git clone https://github.com/felipy2k/Debian-Y2K.git
 cd debian-Y2K
-bash debian-y2k-setup.sh
+bash Debian-Y2K.sh
 ```
 
 > ⚠️ **Do not run as root.** The script uses `sudo` internally where needed.
