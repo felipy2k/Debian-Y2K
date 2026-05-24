@@ -176,7 +176,7 @@ install_packages() {
     # Utilitários do sistema
     curl wget git
     fastfetch
-    lm-sensors hddtemp smartmontools
+    lm-sensors smartmontools
     pipx python3-pip python3-requests
     gir1.2-soup-3.0
     flatpak
@@ -214,7 +214,6 @@ install_packages() {
     timeshift
 
     # Comunicação
-    torbrowser-launcher  # Tor Browser
 
     # Player de mídia (APT .deb — não instalar Flatpak para evitar duplicata)
     vlc
@@ -226,14 +225,12 @@ install_packages() {
     gstreamer1.0-plugins-ugly
     gstreamer1.0-plugins-good
     gstreamer1.0-libav
-    libdvdread8
-    libdvd-pkg
+    libdvdread8t64
 
     # VA-API / VDPAU
     mesa-va-drivers
     mesa-vdpau-drivers
     libva-drm2
-    libva-utils
     vdpauinfo
 
     # Fontes
@@ -257,11 +254,6 @@ install_packages() {
     done
   fi
 
-  # libdvd-pkg requer dpkg-reconfigure após instalação
-  if dpkg -s libdvd-pkg &>/dev/null 2>&1; then
-    step "Configurando libdvd-pkg"
-    try sudo dpkg-reconfigure -f noninteractive libdvd-pkg
-  fi
 
   ok "Pacotes APT instalados."
 
@@ -277,7 +269,7 @@ install_nordvpn() {
   fi
   step "Baixando instalador oficial"
   if curl -fsSL https://downloads.nordcdn.com/apps/linux/install.sh -o /tmp/nordvpn-install.sh; then
-    bash /tmp/nordvpn-install.sh --no-prompt || \
+    bash /tmp/nordvpn-install.sh || \
       warning "Instalação NordVPN falhou — instale manualmente em https://nordvpn.com/download/"
     rm -f /tmp/nordvpn-install.sh
   else
@@ -319,7 +311,7 @@ install_freeoffice() {
   # que o curl interno do installer também rode como root.
   # DEBIAN_FRONTEND evita travamento em prompts interativos.
   step "Método 1: installer oficial SoftMaker"
-  if sudo bash -c 'DEBIAN_FRONTEND=noninteractive curl -fsSL --connect-timeout 20 https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | bash'; then
+  if sudo bash -c 'DEBIAN_FRONTEND=noninteractive curl -fsSL --connect-timeout 20 https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | tr -d "\r" | bash'; then
     ok "FreeOffice 2024 instalado via installer oficial."
     return
   fi
@@ -412,7 +404,7 @@ install_flatpaks() {
     com.system76.Popsicle             # Gravador de USB
 
     # ── Periféricos ──
-    io.github.solaar_mouse.solaar     # Periféricos Logitech
+    io.github.pwr_Solaar.Solaar       # Periféricos Logitech
 
     # ── Comunicação ──
     com.discordapp.Discord            # Discord (apenas Flatpak oficial)
@@ -422,23 +414,23 @@ install_flatpaks() {
 
     # ── Gráficos / Design / 3D ──
     org.freecad.FreeCAD            # CAD 3D (Flatpak = versão atual)
-    io.github.nokse22.exhibit         # Visualizador de modelos 3D
-    io.gitlab.adhami3310.Switcheroo   # Conversor de imagens (formato)
+    io.github.nokse22.Exhibit         # Visualizador de modelos 3D
+    io.gitlab.adhami3310.Converter    # Switcheroo — conversor de imagens
 
     # ── Produtividade / Utilitários ──
     org.gnome.Podcasts                # Podcasts
     org.localsend.localsend_app       # Transferência local de arquivos
     com.rafaelmardojai.Blanket        # Sons ambiente
     com.vixalien.sticky               # Sticky Notes
-    io.github.ADBeveridge.Raider      # File Shredder seguro
-    org.gnome.VideoTrimmer            # Aparador de vídeo simples
+    io.github.adbeveridge.raider      # File Shredder seguro
 
     # ── IA / Dev ──
+    org.torproject.torbrowser-launcher # Tor Browser
     com.jeffser.Alpaca                # Interface Ollama (LLM local)
     io.podman_desktop.PodmanDesktop   # Podman Desktop (containers)
 
     # ── Fotos / Imagem ──
-    io.github.thewh1teagle.upscayl    # Upscaler de imagem com IA
+    io.github.nicehash.upscayl        # Upscaler de imagem com IA
     hu.irl.cameractrls                # Controles avançados de webcam
 
     # ── Ferramentas de cor ──
@@ -666,7 +658,7 @@ remove_bloat() {
     warning "Falha ao salvar backup."
 
   step "Removendo LibreOffice (substituído pelo FreeOffice)"
-  try sudo apt-get remove -y --purge 'libreoffice*'
+  try sudo apt-get remove -y --purge 'libreoffice*' > /dev/null 2>&1 || true
 
   # Remove Showtime (player padrão GNOME 48) e qualquer instância VLC Flatpak duplicada
   # VLC fica apenas como .deb para evitar duplicata no app grid
@@ -841,7 +833,6 @@ apply_settings() {
     try gsettings set org.gnome.desktop.background picture-uri      "$WALLPAPER_URI"
     try gsettings set org.gnome.desktop.background picture-uri-dark "$WALLPAPER_URI"
     try gsettings set org.gnome.desktop.background picture-options  'zoom'
-    try gsettings set org.gnome.screensaver       picture-uri       "$WALLPAPER_URI"
     ok "Wallpaper aplicado."
   fi
 
@@ -896,7 +887,6 @@ verify_final() {
     ["pipx"]="pipx"
     ["python3-requests"]="python3-requests (GSConnect)"
     ["vlc"]="VLC media player (APT)"
-    ["torbrowser-launcher"]="Tor Browser"
     ["converseen"]="Converseen"
     ["shotcut"]="Shotcut"
     ["cheese"]="Cheese"
@@ -913,7 +903,7 @@ verify_final() {
   echo -e "${BOLD}── Flatpaks instalados ──${NC}"
   for app in \
     com.mattjakeman.ExtensionManager \
-    io.github.solaar_mouse.solaar \
+    io.github.pwr_Solaar.Solaar \
     com.discordapp.Discord \
     com.github.tchx84.Flatseal \
     net.nokyan.Resources \
