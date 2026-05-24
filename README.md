@@ -87,21 +87,6 @@ curl -fsSL https://raw.githubusercontent.com/felipy2k/Debian-Y2K/main/Debian-Y2K
 bash Debian-Y2K.sh
 ```
 
-Or as a single one-liner:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/felipy2k/Debian-Y2K/main/Debian-Y2K.sh | bash
-```
-
-Prefer `git`? Install it first:
-
-```bash
-sudo apt-get install -y git
-git clone https://github.com/felipy2k/Debian-Y2K.git
-cd debian-Y2K
-bash Debian-Y2K.sh
-```
-
 > ⚠️ **Do not run as root.** The script uses `sudo` internally where needed.
 
 ---
