@@ -176,14 +176,11 @@ install_packages() {
     curl wget git
     fastfetch
     lm-sensors hddtemp smartmontools
-    # BUG FIX: pipx e python3-requests necessários para gext (extensions) e GSConnect
     pipx python3-pip python3-requests
-    # BUG FIX: gir1.2-soup-3.0 necessário para GSConnect funcionar
     gir1.2-soup-3.0
     flatpak
 
-    # BUG FIX: papirus-icon-theme deve estar na lista de APT
-    # (antes estava ausente, causando falha silenciosa no apply_settings)
+    # Aparência
     papirus-icon-theme
 
     # Navegador
@@ -195,6 +192,8 @@ install_packages() {
     obs-studio
     v4l2loopback-dkms
     shotwell
+    shotcut              # Editor de vídeo (preferência .deb sobre Flatpak)
+    cheese               # Webcam (usuário optou por manter)
 
     # Gráficos / Design
     blender
@@ -202,8 +201,9 @@ install_packages() {
     darktable
     gimp
     imagemagick
+    converseen           # Conversor de imagens em lote
 
-    # Apps GNOME
+    # Apps GNOME / Sistema
     gnome-boxes
     deja-dup
     easyeffects
@@ -211,6 +211,10 @@ install_packages() {
     deskflow
     drawing
     timeshift
+
+    # Comunicação (preferência .deb)
+    telegram-desktop     # Telegram (apt do Debian 13)
+    torbrowser-launcher  # Tor Browser
 
     # Codecs e drivers de mídia
     ffmpeg
@@ -222,7 +226,7 @@ install_packages() {
     libdvdread8
     libdvd-pkg
 
-    # VA-API / VDPAU (aceleração de hardware para vídeo)
+    # VA-API / VDPAU
     mesa-va-drivers
     mesa-vdpau-drivers
     libva-drm2
@@ -362,9 +366,48 @@ install_flatpaks() {
   flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 
   FLATPAKS=(
-    org.videolan.VLC                  # Player de mídia (substitui Showtime/Totem)
+    # ── Player de mídia (substitui Showtime/Totem) ──
+    org.videolan.VLC
+
+    # ── GNOME / Sistema ──
     com.mattjakeman.ExtensionManager  # Gerenciador de extensões GNOME
+    com.github.tchx84.Flatseal        # Gerenciador de permissões Flatpak
+    net.nokyan.Resources              # Monitor de recursos (CPU/RAM/GPU)
+    com.system76.Popsicle             # Gravador de USB
+
+    # ── Periféricos ──
     io.github.solaar_mouse.solaar     # Periféricos Logitech
+
+    # ── Comunicação ──
+    com.discordapp.Discord            # Discord (apenas Flatpak oficial)
+
+    # ── Multimídia / Vídeo ──
+    org.shotcut.Shotcut               # Fallback se shotcut APT não disponível
+    de.haeckerfelix.Shortwave         # Rádio pela internet
+
+    # ── Gráficos / Design / 3D ──
+    org.freecadweb.FreeCAD            # CAD 3D (Flatpak = versão atual)
+    io.github.nokse22.exhibit         # Visualizador de modelos 3D
+    io.gitlab.adhami3310.Switcheroo   # Conversor de imagens (formato)
+
+    # ── Produtividade / Utilitários ──
+    org.gnome.Podcasts                # Podcasts
+    org.localsend.localsend_app       # Transferência local de arquivos
+    com.rafaelmardojai.Blanket        # Sons ambiente
+    com.vixalien.sticky               # Sticky Notes
+    io.github.ADBeveridge.Raider      # File Shredder seguro
+    org.gnome.VideoTrimmer            # Aparador de vídeo simples
+
+    # ── IA / Dev ──
+    com.jeffser.Alpaca                # Interface Ollama (LLM local)
+    io.podman_desktop.PodmanDesktop   # Podman Desktop (containers)
+
+    # ── Fotos / Imagem ──
+    io.github.thewh1teagle.upscayl    # Upscaler de imagem com IA
+    hu.irl.cameractrls                # Controles avançados de webcam
+
+    # ── Ferramentas de cor ──
+    nl.hjdskes.gcolor3                # Color Picker
   )
 
   for app in "${FLATPAKS[@]}"; do
@@ -613,7 +656,7 @@ remove_bloat() {
   done
 
   step "Removendo apps desnecessários"
-  for pkg in cheese gnome-tour gnome-weather gnome-maps yelp dconf-editor piper qjackctl jackd2; do
+  for pkg in gnome-tour gnome-weather gnome-maps yelp dconf-editor piper qjackctl jackd2; do
     dpkg -s "$pkg" &>/dev/null 2>&1 && try sudo apt-get remove -y --purge "$pkg" || true
   done
 
@@ -774,7 +817,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Pacotes que deveriam ter sido REMOVIDOS ──${NC}"
   REMOVED_CHECK=$(dpkg -l 2>/dev/null | grep '^ii' | awk '{print $2}' | grep -E \
-    "libreoffice|gnome-music|rhythmbox|totem|cheese|gnome-weather|gnome-maps|yelp|dconf-editor|^piper$|gnome-terminal" \
+    "libreoffice|gnome-music|rhythmbox|totem|gnome-weather|gnome-maps|yelp|dconf-editor|^piper$|gnome-terminal" \
     || true)
   if [[ -z "$REMOVED_CHECK" ]]; then
     ok "Nenhum pacote indesejado encontrado."
@@ -812,6 +855,11 @@ verify_final() {
     ["lm-sensors"]="LM Sensors"
     ["pipx"]="pipx"
     ["python3-requests"]="python3-requests (GSConnect)"
+    ["telegram-desktop"]="Telegram Desktop"
+    ["torbrowser-launcher"]="Tor Browser"
+    ["converseen"]="Converseen"
+    ["shotcut"]="Shotcut"
+    ["cheese"]="Cheese"
   )
   for pkg in "${!APT_CHECKS[@]}"; do
     if dpkg -s "$pkg" &>/dev/null 2>&1; then
@@ -823,7 +871,16 @@ verify_final() {
 
   echo
   echo -e "${BOLD}── Flatpaks instalados ──${NC}"
-  for app in org.videolan.VLC com.mattjakeman.ExtensionManager io.github.solaar_mouse.solaar; do
+  for app in \
+    org.videolan.VLC \
+    com.mattjakeman.ExtensionManager \
+    io.github.solaar_mouse.solaar \
+    com.discordapp.Discord \
+    org.telegram.desktop \
+    com.github.tchx84.Flatseal \
+    net.nokyan.Resources \
+    org.freecadweb.FreeCAD \
+    com.jeffser.Alpaca; do
     if flatpak info "$app" &>/dev/null 2>&1; then
       ok "$app"
     else
