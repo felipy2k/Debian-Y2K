@@ -21,6 +21,40 @@ The NVIDIA driver uses DKMS to build a kernel module at install time. With Secur
 
 ---
 
+## 🔑 Step 0 — Configure sudo (Debian doesn't do this automatically)
+
+Unlike most distros, **Debian does not add your user to `sudo` during installation**.  
+You must do this manually before running the script — otherwise every `sudo` call will fail silently.
+
+Open a terminal and switch to root:
+
+```bash
+su -
+```
+
+Then run:
+
+```bash
+apt-get install -y sudo curl
+usermod -aG sudo YOUR_USERNAME
+exit
+```
+
+> Replace `YOUR_USERNAME` with your actual username (e.g. `felipe`).
+
+**Log out completely from GNOME and log back in.** Closing the terminal is not enough — the group change only takes effect on a new login session.
+
+Confirm it worked:
+
+```bash
+groups
+# should include: sudo
+sudo echo ok
+# should print: ok
+```
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
@@ -164,13 +198,22 @@ The script automatically detects your GPU and installs:
 | 🔑 | User account with `sudo` access |
 | 💾 | ~15 GB free disk space (Steam + Blender + FreeCAD are heavy) |
 
-> **sudo not configured?** Debian doesn't set it up automatically.
+> **sudo not configured?** Debian doesn't set it up automatically.  
+> Run the following **as root** before executing the script:
+>
 > ```bash
 > su -
 > apt-get install -y sudo curl
 > usermod -aG sudo YOUR_USERNAME
 > exit
-> # Log out and log back in, then run the script
+> ```
+>
+> Then **log out and log back in** so the group takes effect. Alternatively, without logging out:
+>
+> ```bash
+> su - YOUR_USERNAME
+> # Now run the script from this shell — sudo will work
+> bash Debian-Y2K.sh
 > ```
 
 ---
