@@ -5,6 +5,39 @@
 
 ---
 
+## 💾 Disk Space Requirements
+
+> Sizes measured via `apt-cache` (Debian 13 / Ubuntu 24.04 equivalent packages) + Flathub published sizes.  
+> Values reflect **installed size on disk**, not download size.
+
+| 🗂️ Component | 💽 Size | 📝 Notes |
+|---|---|---|
+| 🎬 Codecs (ffmpeg + GStreamer stack) | ~25 MB | |
+| 🌐 Browsers (Chrome + Firefox) | ~320 MB | |
+| 🎬 Multimedia apps (VLC, Audacity, Darktable, HandBrake, EasyEffects, OBS) | ~200 MB | |
+| 🎨 Graphics / 3D (GIMP + Inkscape + Blender) | ~200 MB | |
+| 🖥️ GNOME apps + Utilities | ~250 MB | |
+| 🎨 Papirus icon theme | ~195 MB | Large — hundreds of icon variants |
+| 📝 FreeOffice 2024 | ~700 MB | |
+| 🎮 Steam (`steam-installer` APT package) | ~1 MB | Tiny APT package — bootstraps on first launch |
+| 🎮 Steam runtime (downloaded on first launch) | ~1.5 GB | Downloaded by Steam itself, not by APT |
+| 📱 Flatpaks (24 apps + GNOME/KDE runtimes) | ~3.2 GB | Largest single component of the install |
+| 🟢 NVIDIA driver (`nvidia-driver` + DKMS) | ~250 MB | Only if NVIDIA GPU present |
+| 🧪 CUDA Toolkit — `nvcc`, cuBLAS, headers | ~4.0 GB | **Optional** — prompted during install |
+
+### Totals
+
+| 📦 Scenario | 💽 Disk Used | 💡 Recommended Free Space |
+|---|---|---|
+| Base only (APT + FreeOffice + Flatpaks, no Steam runtime) | ~4.7 GB | **8 GB** |
+| + Steam runtime (typical gaming setup) | ~6.2 GB | **10 GB** |
+| + NVIDIA driver | ~6.5 GB | **10 GB** |
+| + CUDA Toolkit | ~10.5 GB | **15 GB** |
+
+> ⚠️ The script checks for **15 GB free** before running option `[1] Run EVERYTHING` — this safely covers the full scenario including CUDA. If you are skipping CUDA, 10 GB is sufficient.
+
+---
+
 ## ⚠️ Before you start — Disable Secure Boot
 
 **Secure Boot must be disabled in your BIOS/UEFI before running this script.**
